@@ -3,12 +3,11 @@ import type { User } from 'discord.js';
 import { createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream';
 import { OggLogicalBitstream, OpusHead } from 'prism-media/dist/opus';
-const { Deepgram } = require('@deepgram/sdk');
-const fs = require('fs');
+const WebSocket = require('ws');
+const WebSocketStream = require('websocket-stream')
+const { Writable, Transform } = require('stream')
 
-const { deepgramApiKey } = require('../auth.json');
-const mimetype = 'audio/pcm';
-const deepgram = new Deepgram(deepgramApiKey);
+const { deepgram_token } = require('../auth.json');
 
 function getDisplayName(userId: string, user?: User) {
 	return user ? `${user.username}_${user.discriminator}` : userId;
@@ -32,33 +31,37 @@ export function createListeningStream(receiver: VoiceReceiver, userId: string, u
 		},
 	});
 
-	const filename = `./recordings/${Date.now()}-${getDisplayName(userId, user)}.ogg`;
+	console.log(`👂 Started recording ${getDisplayName(userId, user)}`);
 
-	const out = createWriteStream(filename);
+    const socket = new WebSocket('wss://api.deepgram.com/v1/listen', {
+        headers: {
+            Authorization: `Token ${deepgram_token}`,
+        },
+    })
 
-	console.log(`👂 Started recording ${filename}`);
+    const output = new Writable({
+        write(chunk, encoding, callback) {
+            console.log('writing chunk: ', chunk.toString());
+            callback();  
+        }  
+    });
 
+    const transform = new Transform({
+        writableObjectMode: true,
+        transform(chunk, encoding, callback) {
+            this.push(chunk);
+            callback();  
+        }  
+    });
 
-	pipeline(opusStream, oggStream, out, (err) => {
+    const ws = WebSocketStream(socket);
+    ws.pipe(transform).pipe(process.stdout);
+
+	pipeline(opusStream, oggStream, ws, (err) => {
 		if (err) {
-			console.warn(`❌ Error recording file ${filename} - ${err.message}`);
+			console.warn(`❌ Error recording user ${getDisplayName(userId, user)} - ${err.message}`);
 		} else {
-			console.log(`✅ Recorded ${filename}`);
-            deepgram.transcription.preRecorded(
-                { buffer: fs.readFileSync(filename), mimetype },
-                { punctuate: true, 
-                    language: 'en-US',
-                    encoding: 'linear16' },
-            )
-            .then((transcription_obj: object) => {
-                console.dir(transcription_obj, {depth: null});
-                let transcription = transcription_obj.toString();
-                console.log(transcription)
-            })
-            .catch((err: Error) => {
-                console.log(err);
-                return err;
-            });
+			console.log(`✅ Recorded user ${getDisplayName(userId, user)}`);
 		}
 	});
 }
