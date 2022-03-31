@@ -32,7 +32,7 @@ export function createListeningStream(thread: ThreadChannel, receiver: VoiceRece
 
 	console.log(`👂 Started recording ${getDisplayName(userId, user)}`);
 
-    const socket = new WebSocket('wss://api.deepgram.com/v1/listen', {
+    const socket = new WebSocket('wss://api.deepgram.com/v1/listen?punctuate=true', {
         headers: {
             Authorization: `Token ${deepgram_token}`,
         },
