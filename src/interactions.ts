@@ -46,8 +46,6 @@ async function join(
                         reason: `Transcript of ${username}`,
                     });
                 }
-
-                await interaction.followUp({ ephemeral: true, content: `Transcribing to thread ${thread.name}!` });
 				
                 createListeningStream(thread, receiver, userId, client.users.cache.get(userId));
 			}
@@ -76,7 +74,7 @@ async function record(
 			createListeningStream(null, receiver, userId, client.users.cache.get(userId));
 		}
 
-        await interaction.reply({ ephemeral: true, content: 'Listening!' });
+        await interaction.reply({ ephemeral: true, content: `Transcribing to thread ${client.users.cache.get(userId).username}` });
 	} else {
 		await interaction.reply({ ephemeral: true, content: 'Join a voice channel and then try that again!' });
 	}
