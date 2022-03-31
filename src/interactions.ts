@@ -1,5 +1,5 @@
 import { DiscordGatewayAdapterCreator, entersState, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
-import { Client, CommandInteraction, GuildMember, Snowflake } from 'discord.js';
+import { Client, CommandInteraction, GuildMember, Snowflake, TextChannel, ThreadChannel } from 'discord.js';
 import { createListeningStream } from './createListeningStream';
 
 async function join(
@@ -29,9 +29,27 @@ async function join(
 		await entersState(connection, VoiceConnectionStatus.Ready, 20e3);
 		const receiver = connection.receiver;
 
-		receiver.speaking.on('start', (userId) => {
+		receiver.speaking.on('start', async (userId) => {
 			if (recordable.has(userId)) {
-				createListeningStream(receiver, userId, client.users.cache.get(userId));
+                const username = client.users.cache.get(userId).username;
+
+                const channel: TextChannel = client.channels.cache.find(channel => (channel && channel.type === "GUILD_TEXT" && channel.name === "general") ) as TextChannel;
+
+                if (!channel) { await interaction.reply({ ephemeral: true, content: `Could not find channel to transcribe to!` }); }
+
+                let thread: ThreadChannel = channel.threads.cache.find(x => x.name === username);
+
+                if (!thread) {
+                    thread = await channel.threads.create({
+                        name: username,
+                        autoArchiveDuration: 60,
+                        reason: `Transcript of ${username}`,
+                    });
+                }
+
+                await interaction.followUp({ ephemeral: true, content: `Transcribing to thread ${thread.name}!` });
+				
+                createListeningStream(thread, receiver, userId, client.users.cache.get(userId));
 			}
 		});
 	} catch (error) {
@@ -54,10 +72,11 @@ async function record(
 
 		const receiver = connection.receiver;
 		if (connection.receiver.speaking.users.has(userId)) {
-			createListeningStream(receiver, userId, client.users.cache.get(userId));
+            console.log("recording from record function!") // NOTE: this seems to never actually run
+			createListeningStream(null, receiver, userId, client.users.cache.get(userId));
 		}
 
-		await interaction.reply({ ephemeral: true, content: 'Listening!' });
+        await interaction.reply({ ephemeral: true, content: 'Listening!' });
 	} else {
 		await interaction.reply({ ephemeral: true, content: 'Join a voice channel and then try that again!' });
 	}
