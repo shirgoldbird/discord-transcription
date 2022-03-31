@@ -4,9 +4,11 @@ This example shows how to stream Discord audio to Deepgram. Based on the @discor
 
 ## Potential Extensions
 
-[] Send Deepgram output to a Discord channel 
-[] Gracefully handle multiple speakers (check out [Craig Bot](https://craig.chat/home/))
-[] Clean up websocket handling
+[ ] Send Deepgram output to a Discord channel 
+
+[ ] Gracefully handle multiple speakers (check out [Craig Bot](https://craig.chat/home/))
+
+[ ] Clean up websocket handling
 
 ## Usage
 
