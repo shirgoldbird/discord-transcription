@@ -43,7 +43,7 @@ export function createListeningStream(thread: ThreadChannel, receiver: VoiceRece
     });
 
     deepgramParse._transform = function(chunk, _encoding, done) {
-        done(null, JSON.parse(chunk).channel.alternatives[0].transcript + '\n');
+        done(null, JSON.parse(chunk).channel.alternatives[0].transcript + ' ');
     };
 
     let fullFilename = `./recordings/${user.username}_${new Date().toISOString().split(".")[0]}.txt`;
@@ -61,11 +61,11 @@ export function createListeningStream(thread: ThreadChannel, receiver: VoiceRece
             let stream = ws.pipe(deepgramParse).pipe(out);
             stream.on('finish', function () { 
                 try {
-                    let data = readFileSync(fullFilename).toString()
-                    data = data.replace(/(\r\n|\n|\r)/gm, "");
-                    console.log('Read data ', data)
-                    if (data.length > 0) {
-                        thread.send(data);
+                    const data = readFileSync(fullFilename).toString()
+                    const trimmedData = data.trim().replace(/(\r\n|\n|\r|)/gm, "");
+                    if (trimmedData.length > 0) {
+                        console.log('Read data ', data)
+                        thread.send(`${user.username}: ${data}`);
                     }
                 } catch (err) {
                     console.error(err)
