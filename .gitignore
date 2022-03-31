@@ -1,0 +1,6 @@
+dist/*
+node_modules/*
+recordings/*
+auth.json
+*.py
+.DS_Store

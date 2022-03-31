@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"outDir": "dist",
+		"paths": {
+			"libsodium-wrappers": ["./node_modules/libsodium-wrappers"]
+		},
+        "skipLibCheck": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop":true
+	},
+	"include": ["src/*.ts"],
+	"exclude": [""]
+}
