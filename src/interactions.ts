@@ -31,24 +31,26 @@ async function join(
 
 		receiver.speaking.on('start', async (userId) => {
 			if (recordable.has(userId)) {
-                const username = client.users.cache.get(userId).username;
+                const dateString = new Date().toISOString().split("T")[0]
+
+                const threadName = `Transcription ${dateString}`;//client.users.cache.get(userId).username;
 
                 const channel: TextChannel = client.channels.cache.find(channel => (channel && channel.type === "GUILD_TEXT" && channel.name === "general") ) as TextChannel;
 
                 if (!channel) { await interaction.reply({ ephemeral: true, content: `Could not find channel to transcribe to!` }); }
 
-                let thread: ThreadChannel = channel.threads.cache.find(x => x.name === username);
+                let thread: ThreadChannel = channel.threads.cache.find(x => x.name === threadName);
 
                 if (!thread) {
                     thread = await channel.threads.create({
-                        name: username,
+                        name: threadName,
                         autoArchiveDuration: 60,
-                        reason: `Transcript of ${username}`,
+                        reason: `Transcript from ${threadName}`,
                     });
                 }
-				
+
                 createListeningStream(thread, receiver, userId, client.users.cache.get(userId));
-			}
+            }
 		});
 	} catch (error) {
 		console.warn(error);
