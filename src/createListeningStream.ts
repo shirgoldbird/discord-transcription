@@ -39,29 +39,22 @@ export function createListeningStream(receiver: VoiceReceiver, userId: string, u
         },
     })
 
-    const output = new Writable({
-        write(chunk, encoding, callback) {
-            console.log('writing chunk: ', chunk.toString());
-            callback();  
-        }  
+    var deepgramParse = new Transform({
+        decodeStrings: false
     });
 
-    const transform = new Transform({
-        writableObjectMode: true,
-        transform(chunk, encoding, callback) {
-            this.push(chunk);
-            callback();  
-        }  
-    });
+    deepgramParse._transform = function(chunk, encoding, done) {
+        done(null, JSON.parse(chunk).channel.alternatives[0].transcript + '\n');
+    };
 
     const ws = WebSocketStream(socket);
-    ws.pipe(transform).pipe(process.stdout);
 
 	pipeline(opusStream, oggStream, ws, (err) => {
 		if (err) {
 			console.warn(`❌ Error recording user ${getDisplayName(userId, user)} - ${err.message}`);
 		} else {
 			console.log(`✅ Recorded user ${getDisplayName(userId, user)}`);
+            ws.pipe(deepgramParse).pipe(process.stdout);
 		}
 	});
 }
