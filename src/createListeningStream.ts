@@ -63,7 +63,7 @@ export function createListeningStream(recording: Set<Snowflake>, thread: ThreadC
 			console.warn(`❌ Error recording user ${displayName} - ${err.message}`);
 		} else {
 			console.log(`✅ Recorded user ${displayName}`);
-            recording.delete(userId);
 		}
+        recording.delete(userId);
 	});
 }
