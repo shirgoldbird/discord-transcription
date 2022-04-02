@@ -54,7 +54,7 @@ async function join(
 
                 let displayName;
 
-                if (interaction.member instanceof GuildMember) { displayName = interaction.member.displayName }
+                if (interaction.guild.members.cache.get(userId) instanceof GuildMember) { displayName = interaction.guild.members.cache.get(userId).displayName }
                 
                 createListeningStream(recording, thread, receiver, userId, client.users.cache.get(userId), displayName);
             }
@@ -71,7 +71,7 @@ async function record(
 	interaction: CommandInteraction,
 	recordable: Set<Snowflake>,
 	_recording: Set<Snowflake>,
-	_client: Client,
+	client: Client,
 	connection?: VoiceConnection,
 ) {
 	if (connection) {
@@ -85,7 +85,7 @@ async function record(
 			//createListeningStream(null, receiver, userId, client.users.cache.get(userId));
 		}
 
-        await interaction.reply({ ephemeral: true, content: `Transcribing to thread ${new Date().toISOString().split("T")[0]}` }); //${client.users.cache.get(userId).username}` });
+        await interaction.reply({ ephemeral: true, content: `Transcribing ${client.users.cache.get(userId).username} to thread ${new Date().toISOString().split("T")[0]}` }); //${client.users.cache.get(userId).username}` });
 	} else {
 		await interaction.reply({ ephemeral: true, content: 'Join a voice channel and then try that again!' });
 	}
