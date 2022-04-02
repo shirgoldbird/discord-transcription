@@ -38,24 +38,31 @@ export function createListeningStream(recording: Set<Snowflake>, thread: ThreadC
         transform(chunk: string, _encoding: any, done: (arg0: any, arg1: string) => void) {
             const data = JSON.parse(chunk).channel.alternatives[0].transcript + ' ';
 
+            done(null, data);
+        }
+    });
+
+    const discordSend = new Transform({
+        transform(chunk: string, _encoding: any, done: (arg0: any, arg1: string) => void) {
             try {
-                const trimmedData = data.trim().replace(/(\r\n|\n|\r|)/gm, "");
+                chunk = chunk.toString();
+                const trimmedData = chunk.trim().replace(/(\r\n|\n|\r|)/gm, "");
                 if (trimmedData.length > 0) {
-                    console.log(`${displayName}: ${data}`);
-                    thread.send(`${displayName}: ${data}`);
+                    console.log(`${displayName}: ${chunk}`);
+                    thread.send(`${displayName}: ${chunk}`);
                 }
             } catch (err) {
                 console.error(err);
                 done(err, null);
             }
 
-            done(null, data);
+            done(null, chunk);
         }
-    });
+    })
 
     const ws = WebSocketStream(socket);
     
-    ws.pipe(deepgramParse);
+    ws.pipe(deepgramParse).pipe(discordSend);
 
 	pipeline(opusStream, oggStream, ws, (err) => {
 		if (err) {
