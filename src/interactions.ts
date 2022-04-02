@@ -2,6 +2,7 @@ import { DiscordGatewayAdapterCreator, entersState, joinVoiceChannel, VoiceConne
 import { Client, CommandInteraction, GuildMember, Snowflake, TextChannel, ThreadChannel, User } from 'discord.js';
 import { createListeningStream } from './createListeningStream';
 
+const defaultChannel = "general";
 
 function getDisplayName(interaction: CommandInteraction, client: Client, userId: string) {
     if (interaction.guild.members.cache.get(userId) instanceof GuildMember) { 
@@ -54,8 +55,8 @@ async function join(
                 const dateString = new Date().toISOString().split("T")[0]
                 const threadName = `Transcription ${dateString}`;
 
-                // Put our thread in #general, if it exists
-                const channel: TextChannel = client.channels.cache.find(channel => (channel && channel.type === "GUILD_TEXT" && channel.name === "general") ) as TextChannel;
+                // Put our thread in our default channel, if it exists
+                const channel: TextChannel = client.channels.cache.find(channel => (channel && channel.type === "GUILD_TEXT" && channel.name === defaultChannel) ) as TextChannel;
                 
                 if (!channel) { 
                     await interaction.reply({ ephemeral: true, content: `Could not find channel to transcribe to!` }); 
