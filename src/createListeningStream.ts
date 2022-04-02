@@ -33,26 +33,25 @@ export function createListeningStream(recording: Set<Snowflake>, thread: ThreadC
         },
     })
 
-    let deepgramParse = new Transform({
-        decodeStrings: false
-    });
+    const deepgramParse = new Transform({
+        decodeStrings: false,
+        transform(chunk: string, _encoding: any, done: (arg0: any, arg1: string) => void) {
+            const data = JSON.parse(chunk).channel.alternatives[0].transcript + ' ';
 
-    deepgramParse._transform = function(chunk: string, _encoding: any, done: (arg0: any, arg1: string) => void) {
-        const data = JSON.parse(chunk).channel.alternatives[0].transcript + ' ';
-
-        try {
-            const trimmedData = data.trim().replace(/(\r\n|\n|\r|)/gm, "");
-            if (trimmedData.length > 0) {
-                console.log(`${displayName}: ${data}`);
-                thread.send(`${displayName}: ${data}`);
+            try {
+                const trimmedData = data.trim().replace(/(\r\n|\n|\r|)/gm, "");
+                if (trimmedData.length > 0) {
+                    console.log(`${displayName}: ${data}`);
+                    thread.send(`${displayName}: ${data}`);
+                }
+            } catch (err) {
+                console.error(err);
+                done(err, null);
             }
-        } catch (err) {
-            console.error(err);
-            done(err, null);
-        }
 
-        done(null, data);
-    };
+            done(null, data);
+        }
+    });
 
     const ws = WebSocketStream(socket);
     
