@@ -52,7 +52,11 @@ async function join(
                     });
                 }
 
-                createListeningStream(recording, thread, receiver, userId, client.users.cache.get(userId));
+                let displayName;
+
+                if (interaction.member instanceof GuildMember) { displayName = interaction.member.displayName }
+                
+                createListeningStream(recording, thread, receiver, userId, client.users.cache.get(userId), displayName);
             }
 		});
 	} catch (error) {

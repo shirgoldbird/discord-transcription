@@ -8,11 +8,11 @@ const { Transform } = require('stream')
 import { readFileSync, createWriteStream } from 'node:fs';
 const { deepgram_token } = require('../auth.json');
 
-function getDisplayName(userId: string, user?: User) {
-	return user ? `${user.username}_${user.discriminator}` : userId;
+function getDisplayName(userId: string, user?: User, displayName?: string) {
+	return displayName? displayName : (user ? `${user.username}_${user.discriminator}` : userId);
 }
 
-export function createListeningStream(recording: Set<Snowflake>, thread: ThreadChannel, receiver: VoiceReceiver, userId: string, user?: User) {
+export function createListeningStream(recording: Set<Snowflake>, thread: ThreadChannel, receiver: VoiceReceiver, userId: string, user?: User, displayName?: string) {
     const opusStream = receiver.subscribe(userId, {
         end: {
             behavior: EndBehaviorType.AfterSilence,
@@ -30,7 +30,7 @@ export function createListeningStream(recording: Set<Snowflake>, thread: ThreadC
 		},
 	});
 
-	console.log(`👂 Started recording ${getDisplayName(userId, user)}`);
+	console.log(`👂 Started recording ${getDisplayName(userId, user, displayName)}`);
 
     const socket = new WebSocket('wss://api.deepgram.com/v1/listen?punctuate=true', {
         headers: {
@@ -54,9 +54,9 @@ export function createListeningStream(recording: Set<Snowflake>, thread: ThreadC
 
 	pipeline(opusStream, oggStream, ws, (err) => {
 		if (err) {
-			console.warn(`❌ Error recording user ${getDisplayName(userId, user)} - ${err.message}`);
+			console.warn(`❌ Error recording user ${getDisplayName(userId, user, displayName)} - ${err.message}`);
 		} else {
-			console.log(`✅ Recorded user ${getDisplayName(userId, user)}`);
+			console.log(`✅ Recorded user ${getDisplayName(userId, user, displayName)}`);
             recording.delete(userId);
             let stream = ws.pipe(deepgramParse).pipe(out);
             stream.on('finish', function () { 
@@ -64,8 +64,8 @@ export function createListeningStream(recording: Set<Snowflake>, thread: ThreadC
                     const data = readFileSync(fullFilename).toString()
                     const trimmedData = data.trim().replace(/(\r\n|\n|\r|)/gm, "");
                     if (trimmedData.length > 0) {
-                        console.log(`${user.username}: ${data}`);
-                        thread.send(`${user.username}: ${data}`);
+                        console.log(`${getDisplayName(userId, user, displayName)}: ${data}`);
+                        thread.send(`${getDisplayName(userId, user, displayName)}: ${data}`);
                     }
                 } catch (err) {
                     console.error(err)
