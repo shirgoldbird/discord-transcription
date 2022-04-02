@@ -1,5 +1,5 @@
 import { EndBehaviorType, VoiceReceiver } from '@discordjs/voice';
-import type { ThreadChannel, User } from 'discord.js';
+import type { Snowflake, ThreadChannel, User } from 'discord.js';
 import { pipeline } from 'node:stream';
 import { OggLogicalBitstream, OpusHead } from 'prism-media/dist/opus';
 const WebSocket = require('ws');
@@ -12,13 +12,13 @@ function getDisplayName(userId: string, user?: User) {
 	return user ? `${user.username}_${user.discriminator}` : userId;
 }
 
-export function createListeningStream(thread: ThreadChannel, receiver: VoiceReceiver, userId: string, user?: User) {
-	const opusStream = receiver.subscribe(userId, {
-		end: {
-			behavior: EndBehaviorType.AfterSilence,
-			duration: 300,
-		},
-	});
+export function createListeningStream(recording: Set<Snowflake>, thread: ThreadChannel, receiver: VoiceReceiver, userId: string, user?: User) {
+    const opusStream = receiver.subscribe(userId, {
+        end: {
+            behavior: EndBehaviorType.AfterSilence,
+            duration: 1000,
+        },
+    });
 
 	const oggStream = new OggLogicalBitstream({
 		opusHead: new OpusHead({
@@ -57,14 +57,14 @@ export function createListeningStream(thread: ThreadChannel, receiver: VoiceRece
 			console.warn(`❌ Error recording user ${getDisplayName(userId, user)} - ${err.message}`);
 		} else {
 			console.log(`✅ Recorded user ${getDisplayName(userId, user)}`);
-            //let stream = ws.pipe(deepgramParse).pipe(process.stdout);
+            recording.delete(userId);
             let stream = ws.pipe(deepgramParse).pipe(out);
             stream.on('finish', function () { 
                 try {
                     const data = readFileSync(fullFilename).toString()
                     const trimmedData = data.trim().replace(/(\r\n|\n|\r|)/gm, "");
                     if (trimmedData.length > 0) {
-                        console.log('Read data ', data)
+                        console.log(`${user.username}: ${data}`);
                         thread.send(`${user.username}: ${data}`);
                     }
                 } catch (err) {

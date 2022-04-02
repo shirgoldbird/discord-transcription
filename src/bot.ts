@@ -24,6 +24,7 @@ client.on('messageCreate', async (message) => {
  * The IDs of the users that can be recorded by the bot.
  */
 const recordable = new Set<string>();
+const recording = new Set<string>();
 
 client.on('interactionCreate', async (interaction: Interaction) => {
 	if (!interaction.isCommand() || !interaction.guildId) return;
@@ -32,7 +33,7 @@ client.on('interactionCreate', async (interaction: Interaction) => {
 
 	try {
 		if (handler) {
-			await handler(interaction, recordable, client, getVoiceConnection(interaction.guildId));
+			await handler(interaction, recordable, recording, client, getVoiceConnection(interaction.guildId));
 		} else {
 			await interaction.reply('Unknown command');
 		}

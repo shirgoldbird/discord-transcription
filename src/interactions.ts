@@ -5,6 +5,7 @@ import { createListeningStream } from './createListeningStream';
 async function join(
 	interaction: CommandInteraction,
 	recordable: Set<Snowflake>,
+	recording: Set<Snowflake>,
 	client: Client,
 	connection?: VoiceConnection,
 ) {
@@ -31,6 +32,8 @@ async function join(
 
 		receiver.speaking.on('start', async (userId) => {
 			if (recordable.has(userId)) {
+                if (recording.has(userId)) { console.log(`✋ Already recording ${client.users.cache.get(userId).username}!`); return }
+                recording.add(userId);
                 const dateString = new Date().toISOString().split("T")[0]
 
                 const threadName = `Transcription ${dateString}`;//client.users.cache.get(userId).username;
@@ -49,7 +52,7 @@ async function join(
                     });
                 }
 
-                createListeningStream(thread, receiver, userId, client.users.cache.get(userId));
+                createListeningStream(recording, thread, receiver, userId, client.users.cache.get(userId));
             }
 		});
 	} catch (error) {
@@ -63,7 +66,8 @@ async function join(
 async function record(
 	interaction: CommandInteraction,
 	recordable: Set<Snowflake>,
-	client: Client,
+	_recording: Set<Snowflake>,
+	_client: Client,
 	connection?: VoiceConnection,
 ) {
 	if (connection) {
@@ -71,12 +75,13 @@ async function record(
 		recordable.add(userId);
 
 		const receiver = connection.receiver;
+
 		if (connection.receiver.speaking.users.has(userId)) {
             console.log("recording from record function!") // NOTE: this seems to never actually run
-			createListeningStream(null, receiver, userId, client.users.cache.get(userId));
+			//createListeningStream(null, receiver, userId, client.users.cache.get(userId));
 		}
 
-        await interaction.reply({ ephemeral: true, content: `Transcribing to thread ${client.users.cache.get(userId).username}` });
+        await interaction.reply({ ephemeral: true, content: `Transcribing to thread ${new Date().toISOString().split("T")[0]}` }); //${client.users.cache.get(userId).username}` });
 	} else {
 		await interaction.reply({ ephemeral: true, content: 'Join a voice channel and then try that again!' });
 	}
@@ -85,12 +90,14 @@ async function record(
 async function leave(
 	interaction: CommandInteraction,
 	recordable: Set<Snowflake>,
+	recording: Set<Snowflake>,
 	_client: Client,
 	connection?: VoiceConnection,
 ) {
 	if (connection) {
 		connection.destroy();
 		recordable.clear();
+        recording.clear();
 		await interaction.reply({ ephemeral: true, content: 'Left the channel!' });
 	} else {
 		await interaction.reply({ ephemeral: true, content: 'Not playing in this server!' });
@@ -102,6 +109,7 @@ export const interactionHandlers = new Map<
 	(
 		interaction: CommandInteraction,
 		recordable: Set<Snowflake>,
+		recording: Set<Snowflake>,
 		client: Client,
 		connection?: VoiceConnection,
 	) => Promise<void>
