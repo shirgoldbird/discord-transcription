@@ -1,8 +1,7 @@
 import { DiscordGatewayAdapterCreator, entersState, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import { Client, CommandInteraction, GuildMember, Snowflake, TextChannel, ThreadChannel, User, WebhookClient } from 'discord.js';
 import { createListeningStream } from './createListeningStream';
-
-const defaultChannel = "transcription";
+const { defaultChannel } = require('../auth.json');
 
 function getDisplayName(interaction: CommandInteraction, client: Client, userId: string) {
     if (interaction.guild.members.cache.get(userId) instanceof GuildMember) { 
@@ -14,7 +13,7 @@ function getDisplayName(interaction: CommandInteraction, client: Client, userId:
 
 async function join(
 	interaction: CommandInteraction,
-	recordable: Record<string, string>,
+	recordable: Set<Snowflake>,
 	recording: Set<Snowflake>,
 	client: Client,
 	connection?: VoiceConnection,
@@ -41,7 +40,7 @@ async function join(
 		const receiver = connection.receiver;
 
 		receiver.speaking.on('start', async (userId) => {
-			if (userId in recordable) {
+			if (recordable.has(userId)) {
                 const displayName: string = getDisplayName(interaction, client, userId);
 
                 if (recording.has(userId)) { 
@@ -60,9 +59,9 @@ async function join(
                 }
 
                 const webhooks = await channel.fetchWebhooks();
-		        const webhook = webhooks.find(wh => wh.id === recordable[userId]);
+		        const webhook = webhooks.find(wh => wh.name === "Deepgram");
                 if (webhook) {
-                    createListeningStream(webhook, recording, receiver, userId, displayName);
+                    createListeningStream(webhook, recording, receiver, userId, displayName, interaction.guild.members.cache.get(userId).displayAvatarURL());
                 } else {
                     console.error(`Could not find webhook for user!`)
                 }
@@ -78,38 +77,15 @@ async function join(
 
 async function record(
 	interaction: CommandInteraction,
-	recordable: Record<string, string>,
+	recordable: Set<Snowflake>,
 	_recording: Set<Snowflake>,
 	client: Client,
 	connection?: VoiceConnection,
 ) {
 	if (connection) {
 		const userId = interaction.options.get('speaker')!.value! as Snowflake;
-        const displayName = getDisplayName(interaction, client, userId);
 
-        const channel: TextChannel = client.channels.cache.find(channel => (channel && channel.type === "GUILD_TEXT" && channel.name === defaultChannel) ) as TextChannel;
-
-        // create a new webhook for this user if we don't already have one
-        // we'll use the webhook to send messages "as the user" down the line
-        if (!(userId in recordable)) {
-            const webhooks = await channel.fetchWebhooks();
-            const webhook = webhooks.find(wh => wh.name === displayName);
-
-            if (webhook) {
-                console.log(`Found existing webhook ${webhook.id} for ${displayName}`);
-                recordable[userId] = webhook.id;
-            } else {
-                channel.createWebhook(getDisplayName(interaction, client, userId), {
-                    avatar: interaction.guild.members.cache.get(userId).displayAvatarURL(),
-                    reason: userId
-                })
-                .then(webhook => {
-                    console.log(`Created webhook ${webhook.id} for user ${displayName}`);
-                    recordable[userId] = webhook.id;
-                })
-                .catch(console.error);
-            }
-        }
+        recordable.add(userId);
 
         await interaction.reply({ ephemeral: true, content: `Transcribing ${getDisplayName(interaction, client, userId)} to #${defaultChannel}` });
 	} else {
@@ -119,7 +95,7 @@ async function record(
 
 async function leave(
 	interaction: CommandInteraction,
-	_recordable: Record<string, string>,
+	_recordable: Set<Snowflake>,
 	recording: Set<Snowflake>,
 	_client: Client,
 	connection?: VoiceConnection,
@@ -138,7 +114,7 @@ export const interactionHandlers = new Map<
 	string,
 	(
 		interaction: CommandInteraction,
-		recordable: Record<string, string>,
+		recordable: Set<Snowflake>,
 		recording: Set<Snowflake>,
 		client: Client,
 		connection?: VoiceConnection,

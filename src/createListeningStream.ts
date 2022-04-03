@@ -7,7 +7,7 @@ const WebSocketStream = require('websocket-stream')
 const { Transform } = require('stream')
 const { deepgram_token } = require('../auth.json');
 
-export function createListeningStream(webhook: Webhook, recording: Set<Snowflake>, receiver: VoiceReceiver, userId: string, displayName: string) {    
+export function createListeningStream(webhook: Webhook, recording: Set<Snowflake>, receiver: VoiceReceiver, userId: string, displayName: string, avatarUrl: string) {    
     const opusStream = receiver.subscribe(userId, {
         end: {
             behavior: EndBehaviorType.AfterInactivity,
@@ -51,6 +51,8 @@ export function createListeningStream(webhook: Webhook, recording: Set<Snowflake
                     console.log(`${displayName}: ${chunk}`);
                     webhook.send({
                         content: chunk,
+                        username: displayName,
+                        avatarURL: avatarUrl
                     });
                 }
             } catch (err) {
