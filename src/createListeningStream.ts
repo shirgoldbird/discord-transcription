@@ -1,5 +1,5 @@
 import { EndBehaviorType, VoiceReceiver } from '@discordjs/voice';
-import type { Snowflake, ThreadChannel, Webhook } from 'discord.js';
+import type { Snowflake, Webhook } from 'discord.js';
 import { pipeline } from 'node:stream';
 import { OggLogicalBitstream, OpusHead } from 'prism-media/dist/opus';
 const WebSocket = require('ws');
@@ -7,7 +7,7 @@ const WebSocketStream = require('websocket-stream')
 const { Transform } = require('stream')
 const { deepgram_token } = require('../auth.json');
 
-export function createListeningStream(webhook: Webhook, recording: Set<Snowflake>, thread: ThreadChannel, receiver: VoiceReceiver, userId: string, displayName: string) {    
+export function createListeningStream(webhook: Webhook, recording: Set<Snowflake>, receiver: VoiceReceiver, userId: string, displayName: string) {    
     const opusStream = receiver.subscribe(userId, {
         end: {
             behavior: EndBehaviorType.AfterInactivity,
@@ -51,7 +51,6 @@ export function createListeningStream(webhook: Webhook, recording: Set<Snowflake
                     console.log(`${displayName}: ${chunk}`);
                     webhook.send({
                         content: chunk,
-                        options: { threadId: thread.id },
                     });
                 }
             } catch (err) {

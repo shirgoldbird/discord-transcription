@@ -2,7 +2,7 @@ import { DiscordGatewayAdapterCreator, entersState, joinVoiceChannel, VoiceConne
 import { Client, CommandInteraction, GuildMember, Snowflake, TextChannel, ThreadChannel, User, WebhookClient } from 'discord.js';
 import { createListeningStream } from './createListeningStream';
 
-const defaultChannel = "general";
+const defaultChannel = "transcription";
 
 function getDisplayName(interaction: CommandInteraction, client: Client, userId: string) {
     if (interaction.guild.members.cache.get(userId) instanceof GuildMember) { 
@@ -51,14 +51,7 @@ async function join(
 
                 recording.add(userId);
 
-                // Build a thread name that's just today's date (no time)
-                const dateString = new Date()
-                    .toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
-                    .split(",")[0]
-
-                const threadName = `Transcription ${dateString}`;
-
-                // Put our thread in our default channel, if it exists
+                // Find our default channel, if it exists
                 const channel: TextChannel = client.channels.cache.find(channel => (channel && channel.type === "GUILD_TEXT" && channel.name === defaultChannel) ) as TextChannel;
                 
                 if (!channel) { 
@@ -66,20 +59,10 @@ async function join(
                     return;
                 }
 
-                let thread: ThreadChannel = channel.threads.cache.find(x => x.name === threadName);
-
-                if (!thread) {
-                    thread = await channel.threads.create({
-                        name: threadName,
-                        autoArchiveDuration: 60,
-                        reason: `Transcript from ${threadName}`,
-                    });
-                }
-                
                 const webhooks = await channel.fetchWebhooks();
 		        const webhook = webhooks.find(wh => wh.id === recordable[userId]);
                 if (webhook) {
-                    createListeningStream(webhook, recording, thread, receiver, userId, displayName);
+                    createListeningStream(webhook, recording, receiver, userId, displayName);
                 } else {
                     console.error(`Could not find webhook for user!`)
                 }
@@ -128,7 +111,7 @@ async function record(
             }
         }
 
-        await interaction.reply({ ephemeral: true, content: `Transcribing ${getDisplayName(interaction, client, userId)} to thread ${new Date().toISOString().split("T")[0]}` }); //${client.users.cache.get(userId).username}` });
+        await interaction.reply({ ephemeral: true, content: `Transcribing ${getDisplayName(interaction, client, userId)} to #${defaultChannel}` });
 	} else {
 		await interaction.reply({ ephemeral: true, content: 'Join a voice channel and then try that again!' });
 	}
