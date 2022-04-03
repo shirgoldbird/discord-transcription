@@ -23,7 +23,7 @@ client.on('messageCreate', async (message) => {
 /**
  * The IDs of the users that can be recorded by the bot.
  */
-const recordable = new Set<string>();
+const recordable: Record<string, string> = {};
 const recording = new Set<string>();
 
 client.on('interactionCreate', async (interaction: Interaction) => {

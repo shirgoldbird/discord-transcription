@@ -1,5 +1,5 @@
 import { DiscordGatewayAdapterCreator, entersState, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
-import { Client, CommandInteraction, GuildMember, Snowflake, TextChannel, ThreadChannel, User } from 'discord.js';
+import { Client, CommandInteraction, GuildMember, Snowflake, TextChannel, ThreadChannel, User, WebhookClient } from 'discord.js';
 import { createListeningStream } from './createListeningStream';
 
 const defaultChannel = "general";
@@ -14,7 +14,7 @@ function getDisplayName(interaction: CommandInteraction, client: Client, userId:
 
 async function join(
 	interaction: CommandInteraction,
-	recordable: Set<Snowflake>,
+	recordable: Record<string, string>,
 	recording: Set<Snowflake>,
 	client: Client,
 	connection?: VoiceConnection,
@@ -41,7 +41,7 @@ async function join(
 		const receiver = connection.receiver;
 
 		receiver.speaking.on('start', async (userId) => {
-			if (recordable.has(userId)) {
+			if (userId in recordable) {
                 const displayName: string = getDisplayName(interaction, client, userId);
 
                 if (recording.has(userId)) { 
@@ -52,7 +52,10 @@ async function join(
                 recording.add(userId);
 
                 // Build a thread name that's just today's date (no time)
-                const dateString = new Date().toISOString().split("T")[0]
+                const dateString = new Date()
+                    .toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+                    .split(",")[0]
+
                 const threadName = `Transcription ${dateString}`;
 
                 // Put our thread in our default channel, if it exists
@@ -72,8 +75,14 @@ async function join(
                         reason: `Transcript from ${threadName}`,
                     });
                 }
-
-                createListeningStream(recording, thread, receiver, userId, displayName);
+                
+                const webhooks = await channel.fetchWebhooks();
+		        const webhook = webhooks.find(wh => wh.id === recordable[userId]);
+                if (webhook) {
+                    createListeningStream(webhook, recording, thread, receiver, userId, displayName);
+                } else {
+                    console.error(`Could not find webhook for user!`)
+                }
             }
 		});
 	} catch (error) {
@@ -86,14 +95,38 @@ async function join(
 
 async function record(
 	interaction: CommandInteraction,
-	recordable: Set<Snowflake>,
+	recordable: Record<string, string>,
 	_recording: Set<Snowflake>,
 	client: Client,
 	connection?: VoiceConnection,
 ) {
 	if (connection) {
 		const userId = interaction.options.get('speaker')!.value! as Snowflake;
-		recordable.add(userId);
+        const displayName = getDisplayName(interaction, client, userId);
+
+        const channel: TextChannel = client.channels.cache.find(channel => (channel && channel.type === "GUILD_TEXT" && channel.name === defaultChannel) ) as TextChannel;
+
+        // create a new webhook for this user if we don't already have one
+        // we'll use the webhook to send messages "as the user" down the line
+        if (!(userId in recordable)) {
+            const webhooks = await channel.fetchWebhooks();
+            const webhook = webhooks.find(wh => wh.name === displayName);
+
+            if (webhook) {
+                console.log(`Found existing webhook ${webhook.id} for ${displayName}`);
+                recordable[userId] = webhook.id;
+            } else {
+                channel.createWebhook(getDisplayName(interaction, client, userId), {
+                    avatar: interaction.guild.members.cache.get(userId).displayAvatarURL(),
+                    reason: userId
+                })
+                .then(webhook => {
+                    console.log(`Created webhook ${webhook.id} for user ${displayName}`);
+                    recordable[userId] = webhook.id;
+                })
+                .catch(console.error);
+            }
+        }
 
         await interaction.reply({ ephemeral: true, content: `Transcribing ${getDisplayName(interaction, client, userId)} to thread ${new Date().toISOString().split("T")[0]}` }); //${client.users.cache.get(userId).username}` });
 	} else {
@@ -103,14 +136,14 @@ async function record(
 
 async function leave(
 	interaction: CommandInteraction,
-	recordable: Set<Snowflake>,
+	_recordable: Record<string, string>,
 	recording: Set<Snowflake>,
 	_client: Client,
 	connection?: VoiceConnection,
 ) {
 	if (connection) {
 		connection.destroy();
-		recordable.clear();
+		// recordable.clear();
         recording.clear();
 		await interaction.reply({ ephemeral: true, content: 'Left the channel!' });
 	} else {
@@ -122,7 +155,7 @@ export const interactionHandlers = new Map<
 	string,
 	(
 		interaction: CommandInteraction,
-		recordable: Set<Snowflake>,
+		recordable: Record<string, string>,
 		recording: Set<Snowflake>,
 		client: Client,
 		connection?: VoiceConnection,
