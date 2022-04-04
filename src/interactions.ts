@@ -59,11 +59,19 @@ async function join(
                 }
 
                 const webhooks = await channel.fetchWebhooks();
-		        const webhook = webhooks.find(wh => wh.name === "Deepgram");
+		        let webhook = webhooks.find(wh => wh.name === "Deepgram");
                 if (webhook) {
                     createListeningStream(webhook, recording, receiver, userId, displayName, interaction.guild.members.cache.get(userId).displayAvatarURL());
                 } else {
-                    console.error(`Could not find webhook for user!`)
+                    console.error(`Could not find webhook! Creating...`)
+                    const channel = client.channels.cache.find(channel => (channel && channel.type === "GUILD_TEXT" && channel.name === defaultChannel) ) as TextChannel;
+
+                    channel.createWebhook("Deepgram")
+                        .then(webhook => {
+                            console.log(`Created Deepgram webhook ${webhook.id}`);
+                            createListeningStream(webhook, recording, receiver, userId, displayName, interaction.guild.members.cache.get(userId).displayAvatarURL());
+                        })
+                        .catch(console.error);
                 }
             }
 		});
