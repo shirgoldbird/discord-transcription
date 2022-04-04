@@ -1,6 +1,6 @@
-# 👂 Deepgram Recorder Bot
+# 👂 Discord Transcription Bot (ft. Deepgram!)
 
-This example shows how to stream Discord audio to Deepgram. 
+This example shows how to stream Discord audio to Deepgram to provide transcriptions of voice calls. 
 
 ## Interface
 
