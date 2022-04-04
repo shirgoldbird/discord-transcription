@@ -1,23 +1,19 @@
-# 👂 Deepgram Recorder Bot
+# 👂 Discord Transcription Bot (ft. Deepgram!)
 
-This example shows how to stream Discord audio to Deepgram. Based on the @discordjs/voice sample recorder bot.
+This example shows how to stream Discord audio to Deepgram to provide transcriptions of voice calls. 
 
-## Potential Extensions
+## Interface
 
-[x] Send Deepgram output to a Discord channel 
+The bot lets you define a channel to transcribe voice calls to. It then uses webhooks to transcribe messages as the users who are talking.
 
-[x] Gracefully handle multiple speakers (check out [Craig Bot](https://craig.chat/home/))
-
-[x] Clean up websocket handling
-
-[ ] Use webhooks to display each user's output nicely
+<img width="503" alt="image" src="https://user-images.githubusercontent.com/3937986/161467356-c8d1aaef-b11d-495a-a275-ea407e784452.png">
 
 ## Usage
 
 ```sh-session
 $ npm install
 
-# Set a bot and Deepgram token (see auth.example.json)
+# Set a bot token, Deepgram token, and transcription channel (see auth.example.json)
 $ cp auth.example.json auth.json
 $ nano auth.json
 
@@ -27,7 +23,18 @@ $ npm start
 
 ## Bot Setup
 
-Add required permissions here...
+### Bot Scopes
+
+- bot
+- application.commands
+
+### Bot Permissions
+
+- Manage Webhooks
+- Send Messages
+- Use Slash Commands
+- Connect
+- Use Voice Activity
 
 ## Commands
 
